@@ -1,13 +1,3 @@
--- Projects table
-CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    repository_url TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-);
-
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -17,10 +7,10 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT NOT NULL
 );
 
--- Issues table
+-- Issues table (references repositories from main RepoDepot database)
 CREATE TABLE IF NOT EXISTS issues (
     id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL,
+    repo_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT NOT NULL CHECK(status IN ('backlog', 'todo', 'in-progress', 'review', 'done')),
@@ -29,7 +19,6 @@ CREATE TABLE IF NOT EXISTS issues (
     reporter_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -54,7 +43,7 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 -- Indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_issues_project_id ON issues(project_id);
+CREATE INDEX IF NOT EXISTS idx_issues_repo_id ON issues(repo_id);
 CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status);
 CREATE INDEX IF NOT EXISTS idx_issues_assignee_id ON issues(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id);

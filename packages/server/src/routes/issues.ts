@@ -11,13 +11,13 @@ issueRoutes.get('/', (req, res) => {
     const issueRepo = new IssueRepository(db);
 
     const filters: {
-      projectId?: string;
+      repoId?: number;
       status?: IssueStatus;
       assigneeId?: string;
       priority?: IssuePriority;
     } = {};
 
-    if (req.query.projectId) filters.projectId = req.query.projectId as string;
+    if (req.query.repoId) filters.repoId = parseInt(req.query.repoId as string, 10);
     if (req.query.status) filters.status = req.query.status as IssueStatus;
     if (req.query.assigneeId) filters.assigneeId = req.query.assigneeId as string;
     if (req.query.priority) filters.priority = req.query.priority as IssuePriority;

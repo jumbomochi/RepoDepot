@@ -5,7 +5,7 @@ import { IssueStatus, IssuePriority } from '@repodepot/shared';
 
 export const createIssueCommand = new Command('create-issue')
   .description('Create a new issue')
-  .requiredOption('-p, --project <id>', 'Project ID')
+  .requiredOption('-r, --repo <id>', 'Repository ID')
   .requiredOption('-t, --title <title>', 'Issue title')
   .option('-d, --description <desc>', 'Issue description')
   .option('-s, --status <status>', 'Issue status', 'backlog')
@@ -39,7 +39,7 @@ export const createIssueCommand = new Command('create-issue')
       const labels = options.labels ? options.labels.split(',').map((l: string) => l.trim()) : [];
 
       const issue = issueRepo.create({
-        projectId: options.project,
+        repoId: parseInt(options.repo, 10),
         title: options.title,
         description: options.description,
         status: options.status as IssueStatus,

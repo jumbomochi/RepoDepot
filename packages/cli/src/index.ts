@@ -2,7 +2,6 @@
 
 import { Command } from 'commander';
 import { initCommand } from './commands/init.js';
-import { addProjectCommand } from './commands/add-project.js';
 import { createIssueCommand } from './commands/create-issue.js';
 import { listCommand } from './commands/list.js';
 import { statusCommand } from './commands/status.js';
@@ -19,7 +18,6 @@ program
 
 // Register commands
 program.addCommand(initCommand);
-program.addCommand(addProjectCommand);
 program.addCommand(createIssueCommand);
 program.addCommand(listCommand);
 program.addCommand(statusCommand);

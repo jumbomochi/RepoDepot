@@ -66,9 +66,11 @@ function KanbanBoard({ issues, onIssueUpdate }: KanbanBoardProps) {
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         gap: '1rem',
-        marginTop: '2rem',
+        marginTop: '1.5rem',
+        overflowX: 'auto',
+        paddingBottom: '0.5rem',
       }}>
         {COLUMNS.map(column => (
           <KanbanColumn

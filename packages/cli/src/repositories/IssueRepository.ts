@@ -15,13 +15,13 @@ export class IssueRepository {
     };
 
     const stmt = this.db.prepare(`
-      INSERT INTO issues (id, project_id, title, description, status, priority, assignee_id, reporter_id, created_at, updated_at)
+      INSERT INTO issues (id, repo_id, title, description, status, priority, assignee_id, reporter_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       issue.id,
-      issue.projectId,
+      issue.repoId,
       issue.title,
       issue.description,
       issue.status,
@@ -44,7 +44,7 @@ export class IssueRepository {
   }
 
   findAll(filters?: {
-    projectId?: string;
+    repoId?: number;
     status?: IssueStatus;
     assigneeId?: string;
     priority?: IssuePriority;
@@ -52,9 +52,9 @@ export class IssueRepository {
     let query = 'SELECT * FROM issues WHERE 1=1';
     const params: any[] = [];
 
-    if (filters?.projectId) {
-      query += ' AND project_id = ?';
-      params.push(filters.projectId);
+    if (filters?.repoId) {
+      query += ' AND repo_id = ?';
+      params.push(filters.repoId);
     }
     if (filters?.status) {
       query += ' AND status = ?';
@@ -86,11 +86,11 @@ export class IssueRepository {
     return this.mapRowToIssue(row);
   }
 
-  findByProject(projectId: string): Issue[] {
-    return this.findAll({ projectId });
+  findByRepo(repoId: number): Issue[] {
+    return this.findAll({ repoId });
   }
 
-  update(id: string, data: Partial<Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'projectId' | 'reporterId'>>): Issue | null {
+  update(id: string, data: Partial<Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'repoId' | 'reporterId'>>): Issue | null {
     const existing = this.findById(id);
     if (!existing) return null;
 
@@ -160,7 +160,7 @@ export class IssueRepository {
 
     return {
       id: row.id,
-      projectId: row.project_id,
+      repoId: row.repo_id,
       title: row.title,
       description: row.description,
       status: row.status as IssueStatus,

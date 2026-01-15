@@ -1,30 +1,28 @@
 import { Command } from 'commander';
 import { getDb } from '../db/connection.js';
-import { ProjectRepository, IssueRepository } from '../repositories/index.js';
-import { IssueStatus } from '@repodepot/shared';
+import { RepositoryRepository, IssueRepository } from '../repositories/index.js';
+import { IssueStatus, Repository } from '@repodepot/shared';
 
 export const statusCommand = new Command('status')
-  .description('Show project status overview')
-  .option('-p, --project <id>', 'Project ID (shows all if not specified)')
+  .description('Show repository status overview')
+  .option('-r, --repo <id>', 'Repository ID (shows all if not specified)')
   .option('--db <path>', 'Database file path', 'repodepot.db')
   .action((options) => {
     const db = getDb(options.db);
-    const projectRepo = new ProjectRepository(db);
+    const repoRepo = new RepositoryRepository(db);
     const issueRepo = new IssueRepository(db);
 
-    const projects = options.project
-      ? [projectRepo.findById(options.project)].filter(Boolean)
-      : projectRepo.findAll();
+    const repos: Repository[] = options.repo
+      ? [repoRepo.findById(parseInt(options.repo, 10))].filter((r): r is Repository => r !== null)
+      : repoRepo.findAll();
 
-    if (projects.length === 0) {
-      console.log('No projects found.');
+    if (repos.length === 0) {
+      console.log('No repositories found.');
       return;
     }
 
-    projects.forEach(project => {
-      if (!project) return;
-
-      const issues = issueRepo.findByProject(project.id);
+    repos.forEach((repo: Repository) => {
+      const issues = issueRepo.findByRepo(repo.id);
       const statusCounts: Record<IssueStatus, number> = {
         backlog: 0,
         todo: 0,
@@ -33,11 +31,11 @@ export const statusCommand = new Command('status')
         done: 0,
       };
 
-      issues.forEach(issue => {
+      issues.forEach((issue: { status: IssueStatus }) => {
         statusCounts[issue.status]++;
       });
 
-      console.log(`\n${project.name}`);
+      console.log(`\n${repo.fullName}`);
       console.log('═'.repeat(80));
       console.log(`Total Issues: ${issues.length}`);
       console.log('─'.repeat(80));

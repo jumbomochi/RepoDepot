@@ -1,38 +1,38 @@
 import { Command } from 'commander';
 import { getDb } from '../db/connection.js';
-import { ProjectRepository, IssueRepository } from '../repositories/index.js';
+import { RepositoryRepository, IssueRepository } from '../repositories/index.js';
 
 export const listCommand = new Command('list')
-  .description('List projects or issues')
-  .argument('[type]', 'Type to list: projects or issues', 'projects')
-  .option('-p, --project <id>', 'Filter issues by project ID')
+  .description('List repositories or issues')
+  .argument('[type]', 'Type to list: repos or issues', 'repos')
+  .option('-r, --repo <id>', 'Filter issues by repository ID')
   .option('--db <path>', 'Database file path', 'repodepot.db')
   .action((type, options) => {
     const db = getDb(options.db);
 
-    if (type === 'projects') {
-      const projectRepo = new ProjectRepository(db);
-      const projects = projectRepo.findAll();
+    if (type === 'repos' || type === 'repositories') {
+      const repoRepo = new RepositoryRepository(db);
+      const repos = repoRepo.findAll();
 
-      if (projects.length === 0) {
-        console.log('No projects found.');
+      if (repos.length === 0) {
+        console.log('No repositories found.');
         return;
       }
 
-      console.log('\nProjects:');
+      console.log('\nRepositories:');
       console.log('─'.repeat(80));
-      projects.forEach(project => {
-        console.log(`ID: ${project.id}`);
-        console.log(`Name: ${project.name}`);
-        console.log(`Repository: ${project.repositoryUrl}`);
-        if (project.description) {
-          console.log(`Description: ${project.description}`);
+      repos.forEach((repo: { id: number; fullName: string; cloneUrl: string; localPath: string | null }) => {
+        console.log(`ID: ${repo.id}`);
+        console.log(`Name: ${repo.fullName}`);
+        console.log(`URL: ${repo.cloneUrl}`);
+        if (repo.localPath) {
+          console.log(`Local Path: ${repo.localPath}`);
         }
         console.log('─'.repeat(80));
       });
     } else if (type === 'issues') {
       const issueRepo = new IssueRepository(db);
-      const filters = options.project ? { projectId: options.project } : undefined;
+      const filters = options.repo ? { repoId: parseInt(options.repo, 10) } : undefined;
       const issues = issueRepo.findAll(filters);
 
       if (issues.length === 0) {
@@ -55,7 +55,7 @@ export const listCommand = new Command('list')
         console.log('─'.repeat(80));
       });
     } else {
-      console.error('Invalid type. Use "projects" or "issues"');
+      console.error('Invalid type. Use "repos" or "issues"');
       process.exit(1);
     }
   });

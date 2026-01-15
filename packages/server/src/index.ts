@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { getDb } from './db/connection.js';
-import { projectRoutes } from './routes/projects.js';
 import { userRoutes } from './routes/users.js';
 import { issueRoutes } from './routes/issues.js';
 import { repositoryRoutes } from './routes/repositories.js';
@@ -19,7 +18,6 @@ const dbPath = process.env.DB_PATH || 'repodepot.db';
 getDb(dbPath);
 
 // Routes
-app.use('/api/projects', projectRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/repositories', repositoryRoutes);

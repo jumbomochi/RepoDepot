@@ -80,16 +80,7 @@ export interface PRKanbanBoard {
   columns: KanbanColumn<PullRequest>[];
 }
 
-// Project Management types
-export interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  repositoryUrl: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
+// Issue Management types
 export interface User {
   id: string;
   username: string;
@@ -103,7 +94,7 @@ export type IssuePriority = 'low' | 'medium' | 'high' | 'critical';
 
 export interface Issue {
   id: string;
-  projectId: string;
+  repoId: number;
   title: string;
   description?: string;
   status: IssueStatus;
