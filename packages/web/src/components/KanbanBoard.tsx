@@ -8,13 +8,15 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useState } from 'react';
-import { Issue, IssueStatus } from '@repodepot/shared';
+import { Issue, IssueStatus, Repository } from '@repodepot/shared';
 import KanbanColumn from './KanbanColumn';
 import IssueCard from './IssueCard';
 
 interface KanbanBoardProps {
   issues: Issue[];
+  repos: Repository[];
   onIssueUpdate: (issueId: string, updates: Partial<Issue>) => void;
+  onSyncComplete?: (issue: Issue) => void;
 }
 
 const COLUMNS: { id: IssueStatus; title: string }[] = [
@@ -25,8 +27,13 @@ const COLUMNS: { id: IssueStatus; title: string }[] = [
   { id: 'done', title: 'Done' },
 ];
 
-function KanbanBoard({ issues, onIssueUpdate }: KanbanBoardProps) {
+function KanbanBoard({ issues, repos, onIssueUpdate, onSyncComplete }: KanbanBoardProps) {
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
+
+  const getRepoName = (repoId: number) => {
+    const repo = repos.find(r => r.id === repoId);
+    return repo?.fullName?.split('/')[1] || repo?.name || 'Unknown';
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -79,13 +86,15 @@ function KanbanBoard({ issues, onIssueUpdate }: KanbanBoardProps) {
             status={column.id}
             issues={getIssuesForColumn(column.id)}
             onIssueUpdate={onIssueUpdate}
+            onSyncComplete={onSyncComplete}
+            getRepoName={getRepoName}
           />
         ))}
       </div>
 
       <DragOverlay>
         {activeIssue ? (
-          <IssueCard issue={activeIssue} onUpdate={onIssueUpdate} />
+          <IssueCard issue={activeIssue} onUpdate={onIssueUpdate} repoName={getRepoName(activeIssue.repoId)} />
         ) : null}
       </DragOverlay>
     </DndContext>

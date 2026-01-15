@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { Issue, IssueStatus, IssuePriority } from '@repodepot/shared';
+import { Issue, IssueStatus, IssuePriority, AgentStatus } from '@repodepot/shared';
 import { randomUUID } from 'crypto';
 
 export class IssueRepository {
@@ -15,8 +15,8 @@ export class IssueRepository {
     };
 
     const stmt = this.db.prepare(`
-      INSERT INTO issues (id, repo_id, title, description, status, priority, assignee_id, reporter_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO issues (id, repo_id, title, description, status, priority, assignee_id, reporter_id, created_at, updated_at, github_issue_number, github_issue_url, synced_at, agent_status, agent_claimed_at, agent_completed_at, agent_error)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -29,7 +29,14 @@ export class IssueRepository {
       issue.assigneeId || null,
       issue.reporterId,
       issue.createdAt,
-      issue.updatedAt
+      issue.updatedAt,
+      issue.githubIssueNumber || null,
+      issue.githubIssueUrl || null,
+      issue.syncedAt || null,
+      issue.agentStatus || 'pending',
+      issue.agentClaimedAt || null,
+      issue.agentCompletedAt || null,
+      issue.agentError || null
     );
 
     // Insert labels
@@ -118,6 +125,34 @@ export class IssueRepository {
       updates.push('assignee_id = ?');
       values.push(data.assigneeId);
     }
+    if (data.githubIssueNumber !== undefined) {
+      updates.push('github_issue_number = ?');
+      values.push(data.githubIssueNumber);
+    }
+    if (data.githubIssueUrl !== undefined) {
+      updates.push('github_issue_url = ?');
+      values.push(data.githubIssueUrl);
+    }
+    if (data.syncedAt !== undefined) {
+      updates.push('synced_at = ?');
+      values.push(data.syncedAt);
+    }
+    if (data.agentStatus !== undefined) {
+      updates.push('agent_status = ?');
+      values.push(data.agentStatus);
+    }
+    if (data.agentClaimedAt !== undefined) {
+      updates.push('agent_claimed_at = ?');
+      values.push(data.agentClaimedAt);
+    }
+    if (data.agentCompletedAt !== undefined) {
+      updates.push('agent_completed_at = ?');
+      values.push(data.agentCompletedAt);
+    }
+    if (data.agentError !== undefined) {
+      updates.push('agent_error = ?');
+      values.push(data.agentError);
+    }
 
     if (updates.length === 0 && !data.labels) return existing;
 
@@ -170,6 +205,50 @@ export class IssueRepository {
       labels,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      githubIssueNumber: row.github_issue_number || undefined,
+      githubIssueUrl: row.github_issue_url || undefined,
+      syncedAt: row.synced_at || undefined,
+      agentStatus: row.agent_status || 'pending',
+      agentClaimedAt: row.agent_claimed_at || undefined,
+      agentCompletedAt: row.agent_completed_at || undefined,
+      agentError: row.agent_error || undefined,
     };
+  }
+
+  // Agent-specific query methods
+  findPendingByRepo(repoId: number): Issue[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM issues
+      WHERE repo_id = ? AND agent_status = 'pending' AND github_issue_number IS NOT NULL
+      ORDER BY priority DESC, created_at ASC
+    `);
+    const rows = stmt.all(repoId) as any[];
+    return rows.map(row => this.mapRowToIssue(row));
+  }
+
+  findByAgentStatus(repoId: number, status: AgentStatus): Issue[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM issues
+      WHERE repo_id = ? AND agent_status = ?
+      ORDER BY created_at DESC
+    `);
+    const rows = stmt.all(repoId, status) as any[];
+    return rows.map(row => this.mapRowToIssue(row));
+  }
+
+  findByGitHubIssueNumber(repoId: number, githubIssueNumber: number): Issue | null {
+    const stmt = this.db.prepare('SELECT * FROM issues WHERE repo_id = ? AND github_issue_number = ?');
+    const row = stmt.get(repoId, githubIssueNumber) as any;
+
+    if (!row) return null;
+
+    return this.mapRowToIssue(row);
+  }
+
+  findUnsyncedByRepo(repoId: number): Issue[] {
+    const stmt = this.db.prepare('SELECT * FROM issues WHERE repo_id = ? AND github_issue_number IS NULL ORDER BY created_at DESC');
+    const rows = stmt.all(repoId) as any[];
+
+    return rows.map(row => this.mapRowToIssue(row));
   }
 }

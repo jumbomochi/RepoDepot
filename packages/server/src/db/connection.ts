@@ -74,6 +74,9 @@ CREATE TABLE IF NOT EXISTS issues (
     reporter_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
+    github_issue_number INTEGER,
+    github_issue_url TEXT,
+    synced_at TEXT,
     FOREIGN KEY (repo_id) REFERENCES repositories(id) ON DELETE CASCADE,
     FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE
@@ -98,6 +101,13 @@ CREATE TABLE IF NOT EXISTS comments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- App configuration table
+CREATE TABLE IF NOT EXISTS app_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_repositories_group_id ON repositories(group_id);
 CREATE INDEX IF NOT EXISTS idx_pull_requests_repo_id ON pull_requests(repo_id);
@@ -116,6 +126,7 @@ export class DatabaseConnection {
       DatabaseConnection.instance = new Database(dbPath);
       DatabaseConnection.instance.pragma('foreign_keys = ON');
       DatabaseConnection.initializeSchema();
+      DatabaseConnection.runMigrations();
     }
     return DatabaseConnection.instance;
   }
@@ -128,6 +139,67 @@ export class DatabaseConnection {
 
     for (const statement of statements) {
       DatabaseConnection.instance!.exec(statement);
+    }
+  }
+
+  private static runMigrations(): void {
+    const db = DatabaseConnection.instance!;
+
+    // Helper to check if column exists
+    const hasColumn = (table: string, column: string): boolean => {
+      const columns = db.pragma(`table_info(${table})`) as { name: string }[];
+      return columns.some(col => col.name === column);
+    };
+
+    // Migration: Add GitHub sync columns to issues table
+    if (!hasColumn('issues', 'github_issue_number')) {
+      db.exec('ALTER TABLE issues ADD COLUMN github_issue_number INTEGER');
+    }
+    if (!hasColumn('issues', 'github_issue_url')) {
+      db.exec('ALTER TABLE issues ADD COLUMN github_issue_url TEXT');
+    }
+    if (!hasColumn('issues', 'synced_at')) {
+      db.exec('ALTER TABLE issues ADD COLUMN synced_at TEXT');
+    }
+
+    // Migration: Add agent columns to issues table
+    if (!hasColumn('issues', 'agent_status')) {
+      db.exec("ALTER TABLE issues ADD COLUMN agent_status TEXT DEFAULT 'pending'");
+    }
+    if (!hasColumn('issues', 'agent_claimed_at')) {
+      db.exec('ALTER TABLE issues ADD COLUMN agent_claimed_at TEXT');
+    }
+    if (!hasColumn('issues', 'agent_completed_at')) {
+      db.exec('ALTER TABLE issues ADD COLUMN agent_completed_at TEXT');
+    }
+    if (!hasColumn('issues', 'agent_error')) {
+      db.exec('ALTER TABLE issues ADD COLUMN agent_error TEXT');
+    }
+
+    // Ensure default system users exist for issue creation
+    DatabaseConnection.ensureSystemUsers();
+  }
+
+  private static ensureSystemUsers(): void {
+    const db = DatabaseConnection.instance!;
+    const now = new Date().toISOString();
+
+    // Create local-user for manually created issues
+    const localUser = db.prepare('SELECT id FROM users WHERE id = ?').get('local-user');
+    if (!localUser) {
+      db.prepare(`
+        INSERT INTO users (id, username, email, avatar_url, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run('local-user', 'Local User', 'local@repodepot.local', null, now);
+    }
+
+    // Create github-import user for imported issues
+    const githubImport = db.prepare('SELECT id FROM users WHERE id = ?').get('github-import');
+    if (!githubImport) {
+      db.prepare(`
+        INSERT INTO users (id, username, email, avatar_url, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run('github-import', 'GitHub Import', 'github@repodepot.local', null, now);
     }
   }
 

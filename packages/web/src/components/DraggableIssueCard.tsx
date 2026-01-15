@@ -6,9 +6,11 @@ import IssueCard from './IssueCard';
 interface DraggableIssueCardProps {
   issue: Issue;
   onUpdate: (issueId: string, updates: Partial<Issue>) => void;
+  onSyncComplete?: (issue: Issue) => void;
+  repoName?: string;
 }
 
-function DraggableIssueCard({ issue, onUpdate }: DraggableIssueCardProps) {
+function DraggableIssueCard({ issue, onUpdate, onSyncComplete, repoName }: DraggableIssueCardProps) {
   const {
     attributes,
     listeners,
@@ -26,7 +28,7 @@ function DraggableIssueCard({ issue, onUpdate }: DraggableIssueCardProps) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <IssueCard issue={issue} onUpdate={onUpdate} />
+      <IssueCard issue={issue} onUpdate={onUpdate} onSyncComplete={onSyncComplete} repoName={repoName} />
     </div>
   );
 }

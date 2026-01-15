@@ -28,15 +28,16 @@ function Layout() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>RepoDepot</h1>
 
-          <nav style={{ display: 'flex', gap: '0.5rem' }}>
+          <nav style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <Link to="/" style={navLinkStyle('/')}>
               Dashboard
             </Link>
-            <Link to="/repositories" style={navLinkStyle('/repositories')}>
-              Repositories
+            <Link to="/activity" style={navLinkStyle('/activity')}>
+              Activity
             </Link>
-            <Link to="/pull-requests" style={navLinkStyle('/pull-requests')}>
-              Pull Requests
+            <div style={{ width: '1px', height: '1.5rem', backgroundColor: '#374151', margin: '0 0.5rem' }} />
+            <Link to="/settings" style={navLinkStyle('/settings')}>
+              Settings
             </Link>
           </nav>
         </div>

@@ -91,6 +91,7 @@ export interface User {
 
 export type IssueStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 export type IssuePriority = 'low' | 'medium' | 'high' | 'critical';
+export type AgentStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'failed';
 
 export interface Issue {
   id: string;
@@ -104,6 +105,15 @@ export interface Issue {
   labels: string[];
   createdAt: string;
   updatedAt: string;
+  // GitHub sync fields
+  githubIssueNumber?: number;
+  githubIssueUrl?: string;
+  syncedAt?: string;
+  // Agent fields
+  agentStatus?: AgentStatus;
+  agentClaimedAt?: string;
+  agentCompletedAt?: string;
+  agentError?: string;
 }
 
 export interface Comment {
@@ -112,4 +122,44 @@ export interface Comment {
   userId: string;
   content: string;
   createdAt: string;
+}
+
+// Activity & Commit types
+export interface Commit {
+  hash: string;
+  hashShort: string;
+  author: string;
+  authorEmail: string;
+  message: string;
+  date: string;
+}
+
+export interface Contributor {
+  login: string;
+  avatarUrl: string;
+  contributions: number;
+}
+
+export interface RepoActivity {
+  repoId: number;
+  repoFullName: string;
+  recentCommits: Commit[];
+  commitsThisWeek: number;
+  topContributors: Contributor[];
+  openIssues: number;
+  openPRs: number;
+}
+
+export interface ActivitySummary {
+  totalCommitsThisWeek: number;
+  totalPRsMerged: number;
+  activeContributors: number;
+  recentActivity: {
+    type: 'commit' | 'pr_merged' | 'issue_opened' | 'issue_closed';
+    repoFullName: string;
+    title: string;
+    author: string;
+    timestamp: string;
+    url?: string;
+  }[];
 }

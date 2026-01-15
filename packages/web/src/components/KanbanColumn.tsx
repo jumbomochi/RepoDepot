@@ -8,9 +8,11 @@ interface KanbanColumnProps {
   status: IssueStatus;
   issues: Issue[];
   onIssueUpdate: (issueId: string, updates: Partial<Issue>) => void;
+  onSyncComplete?: (issue: Issue) => void;
+  getRepoName: (repoId: number) => string;
 }
 
-function KanbanColumn({ title, status, issues, onIssueUpdate }: KanbanColumnProps) {
+function KanbanColumn({ title, status, issues, onIssueUpdate, onSyncComplete, getRepoName }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
@@ -57,6 +59,8 @@ function KanbanColumn({ title, status, issues, onIssueUpdate }: KanbanColumnProp
               key={issue.id}
               issue={issue}
               onUpdate={onIssueUpdate}
+              onSyncComplete={onSyncComplete}
+              repoName={getRepoName(issue.repoId)}
             />
           ))}
         </div>

@@ -1,16 +1,16 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import Repositories from './pages/Repositories';
-import PullRequests from './pages/PullRequests';
+import Activity from './pages/Activity';
+import Settings from './pages/Settings';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
-        <Route path="repositories" element={<Repositories />} />
-        <Route path="pull-requests" element={<PullRequests />} />
+        <Route path="activity" element={<Activity />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );
