@@ -1,0 +1,29 @@
+{
+  "name": "repodepot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitHub repo manager with Kanban-style visualization",
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "cli": "pnpm --filter @repodepot/cli"
+  },
+  "keywords": [
+    "github",
+    "git",
+    "repository",
+    "manager",
+    "kanban"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "turbo": "^2.7.4"
+  }
+}

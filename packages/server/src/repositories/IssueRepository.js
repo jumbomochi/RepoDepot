@@ -1,0 +1,137 @@
+import { randomUUID } from 'crypto';
+export class IssueRepository {
+    db;
+    constructor(db) {
+        this.db = db;
+    }
+    create(data) {
+        const now = new Date().toISOString();
+        const issue = {
+            id: randomUUID(),
+            ...data,
+            createdAt: now,
+            updatedAt: now,
+        };
+        const stmt = this.db.prepare(`
+      INSERT INTO issues (id, project_id, title, description, status, priority, assignee_id, reporter_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+        stmt.run(issue.id, issue.projectId, issue.title, issue.description, issue.status, issue.priority, issue.assigneeId || null, issue.reporterId, issue.createdAt, issue.updatedAt);
+        // Insert labels
+        if (issue.labels && issue.labels.length > 0) {
+            const labelStmt = this.db.prepare('INSERT INTO issue_labels (issue_id, label) VALUES (?, ?)');
+            for (const label of issue.labels) {
+                labelStmt.run(issue.id, label);
+            }
+        }
+        return issue;
+    }
+    findAll(filters) {
+        let query = 'SELECT * FROM issues WHERE 1=1';
+        const params = [];
+        if (filters?.projectId) {
+            query += ' AND project_id = ?';
+            params.push(filters.projectId);
+        }
+        if (filters?.status) {
+            query += ' AND status = ?';
+            params.push(filters.status);
+        }
+        if (filters?.assigneeId) {
+            query += ' AND assignee_id = ?';
+            params.push(filters.assigneeId);
+        }
+        if (filters?.priority) {
+            query += ' AND priority = ?';
+            params.push(filters.priority);
+        }
+        query += ' ORDER BY created_at DESC';
+        const stmt = this.db.prepare(query);
+        const rows = stmt.all(...params);
+        return rows.map(row => this.mapRowToIssue(row));
+    }
+    findById(id) {
+        const stmt = this.db.prepare('SELECT * FROM issues WHERE id = ?');
+        const row = stmt.get(id);
+        if (!row)
+            return null;
+        return this.mapRowToIssue(row);
+    }
+    findByProject(projectId) {
+        return this.findAll({ projectId });
+    }
+    update(id, data) {
+        const existing = this.findById(id);
+        if (!existing)
+            return null;
+        const updatedAt = new Date().toISOString();
+        const updates = [];
+        const values = [];
+        if (data.title !== undefined) {
+            updates.push('title = ?');
+            values.push(data.title);
+        }
+        if (data.description !== undefined) {
+            updates.push('description = ?');
+            values.push(data.description);
+        }
+        if (data.status !== undefined) {
+            updates.push('status = ?');
+            values.push(data.status);
+        }
+        if (data.priority !== undefined) {
+            updates.push('priority = ?');
+            values.push(data.priority);
+        }
+        if (data.assigneeId !== undefined) {
+            updates.push('assignee_id = ?');
+            values.push(data.assigneeId);
+        }
+        if (updates.length === 0 && !data.labels)
+            return existing;
+        updates.push('updated_at = ?');
+        values.push(updatedAt);
+        values.push(id);
+        const stmt = this.db.prepare(`
+      UPDATE issues SET ${updates.join(', ')} WHERE id = ?
+    `);
+        stmt.run(...values);
+        // Update labels if provided
+        if (data.labels !== undefined) {
+            const deleteStmt = this.db.prepare('DELETE FROM issue_labels WHERE issue_id = ?');
+            deleteStmt.run(id);
+            if (data.labels.length > 0) {
+                const insertStmt = this.db.prepare('INSERT INTO issue_labels (issue_id, label) VALUES (?, ?)');
+                for (const label of data.labels) {
+                    insertStmt.run(id, label);
+                }
+            }
+        }
+        return this.findById(id);
+    }
+    delete(id) {
+        const stmt = this.db.prepare('DELETE FROM issues WHERE id = ?');
+        const result = stmt.run(id);
+        return result.changes > 0;
+    }
+    mapRowToIssue(row) {
+        // Get labels for this issue
+        const labelStmt = this.db.prepare('SELECT label FROM issue_labels WHERE issue_id = ?');
+        const labelRows = labelStmt.all(row.id);
+        const labels = labelRows.map(r => r.label);
+        return {
+            id: row.id,
+            projectId: row.project_id,
+            title: row.title,
+            description: row.description,
+            status: row.status,
+            priority: row.priority,
+            assigneeId: row.assignee_id,
+            reporterId: row.reporter_id,
+            labels,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        };
+    }
+}
+//# sourceMappingURL=IssueRepository.js.map
