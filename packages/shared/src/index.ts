@@ -163,3 +163,33 @@ export interface ActivitySummary {
     url?: string;
   }[];
 }
+
+// Agent Progress types
+export type StepStatus = 'pending' | 'in_progress' | 'done' | 'failed' | 'skipped';
+
+export interface TaskStep {
+  id: string;
+  taskId: string;
+  index: number;
+  description: string;
+  status: StepStatus;
+  note?: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface TaskQuestion {
+  id: string;
+  taskId: string;
+  question: string;
+  choices?: string[];
+  answer?: string;
+  askedAt: string;
+  answeredAt?: string;
+}
+
+export interface TaskProgress {
+  taskId: string;
+  steps: TaskStep[];
+  currentQuestion?: TaskQuestion;
+}
