@@ -108,6 +108,31 @@ CREATE TABLE IF NOT EXISTS app_config (
     updated_at TEXT NOT NULL
 );
 
+-- Task progress steps
+CREATE TABLE IF NOT EXISTS task_steps (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL,
+    idx INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending', 'in_progress', 'done', 'failed', 'skipped')) DEFAULT 'pending',
+    note TEXT,
+    started_at TEXT,
+    completed_at TEXT,
+    FOREIGN KEY (task_id) REFERENCES issues(id) ON DELETE CASCADE
+);
+
+-- Task questions for agent clarification
+CREATE TABLE IF NOT EXISTS task_questions (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL,
+    question TEXT NOT NULL,
+    choices TEXT,
+    answer TEXT,
+    asked_at TEXT NOT NULL,
+    answered_at TEXT,
+    FOREIGN KEY (task_id) REFERENCES issues(id) ON DELETE CASCADE
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_repositories_group_id ON repositories(group_id);
 CREATE INDEX IF NOT EXISTS idx_pull_requests_repo_id ON pull_requests(repo_id);
@@ -116,6 +141,8 @@ CREATE INDEX IF NOT EXISTS idx_issues_repo_id ON issues(repo_id);
 CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status);
 CREATE INDEX IF NOT EXISTS idx_issues_assignee_id ON issues(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id);
+CREATE INDEX IF NOT EXISTS idx_task_steps_task_id ON task_steps(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_questions_task_id ON task_questions(task_id);
 `;
 
 export class DatabaseConnection {
