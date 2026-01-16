@@ -487,6 +487,7 @@ agentRoutes.post('/start-all', (req, res) => {
       pendingTasks?: number;
       error?: string;
       pid?: number;
+      logFile?: string;
     }[] = [];
 
     for (const repo of repos) {

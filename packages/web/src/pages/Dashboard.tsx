@@ -105,15 +105,6 @@ function Dashboard() {
     }
   };
 
-  const checkConfig = async () => {
-    try {
-      const config = await api.getConfig();
-      setHasToken(config.hasGitHubToken);
-    } catch {
-      setHasToken(false);
-    }
-  };
-
   const checkRunningAgents = async () => {
     try {
       const result = await api.getRunningAgents();
