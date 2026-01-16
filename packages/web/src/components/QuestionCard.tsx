@@ -17,15 +17,17 @@ interface QuestionCardProps {
 export function QuestionCard({ taskId, taskTitle, repoName, question, onAnswered }: QuestionCardProps) {
   const [customAnswer, setCustomAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAnswer = async (answer: string) => {
     setSubmitting(true);
+    setError(null);
     try {
       await api.answerQuestion(taskId, answer);
       onAnswered();
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-      alert('Failed to submit answer');
+    } catch (err) {
+      console.error('Error submitting answer:', err);
+      setError('Failed to submit answer. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -109,6 +111,19 @@ export function QuestionCard({ taskId, taskTitle, repoName, question, onAnswered
           >
             Send
           </button>
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          marginTop: '12px',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          background: '#7f1d1d',
+          color: '#fca5a5',
+          fontSize: '13px',
+        }}>
+          {error}
         </div>
       )}
     </div>

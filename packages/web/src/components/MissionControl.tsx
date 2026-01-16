@@ -34,9 +34,21 @@ export function MissionControl({ issues, repositories, onRefresh }: MissionContr
   }, []);
 
   useEffect(() => {
-    fetchAwaiting();
-    const interval = setInterval(fetchAwaiting, 5000);
-    return () => clearInterval(interval);
+    let isMounted = true;
+
+    const fetchWithCleanup = async () => {
+      if (isMounted) {
+        await fetchAwaiting();
+      }
+    };
+
+    fetchWithCleanup();
+    const interval = setInterval(fetchWithCleanup, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [fetchAwaiting]);
 
   const getRepoName = (repoId: number) => {
@@ -49,10 +61,12 @@ export function MissionControl({ issues, repositories, onRefresh }: MissionContr
   };
 
   // Categorize issues
-  const needsAttention = awaitingTasks.map(t => ({
-    ...t,
-    issue: getIssueById(t.taskId),
-  })).filter(t => t.issue);
+  const needsAttention = awaitingTasks
+    .map(t => {
+      const issue = getIssueById(t.taskId);
+      return issue ? { ...t, issue } : null;
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null);
 
   const active = issues.filter(i =>
     i.agentStatus === 'in_progress' &&
@@ -104,8 +118,8 @@ export function MissionControl({ issues, repositories, onRefresh }: MissionContr
             <QuestionCard
               key={taskId}
               taskId={taskId}
-              taskTitle={issue!.title}
-              repoName={getRepoName(issue!.repoId)}
+              taskTitle={issue.title}
+              repoName={getRepoName(issue.repoId)}
               question={question}
               onAnswered={handleAnswered}
             />

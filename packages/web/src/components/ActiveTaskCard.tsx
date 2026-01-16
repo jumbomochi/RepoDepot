@@ -17,50 +17,63 @@ interface ActiveTaskCardProps {
   repoName: string;
 }
 
+const getStepIcon = (status: Step['status']) => {
+  switch (status) {
+    case 'done': return '✓';
+    case 'in_progress': return '●';
+    case 'failed': return '✗';
+    case 'skipped': return '−';
+    default: return '○';
+  }
+};
+
+const getStepColor = (status: Step['status']) => {
+  switch (status) {
+    case 'done': return '#22c55e';
+    case 'in_progress': return '#3b82f6';
+    case 'failed': return '#ef4444';
+    case 'skipped': return '#9ca3af';
+    default: return '#6b7280';
+  }
+};
+
 export function ActiveTaskCard({ issue, repoName }: ActiveTaskCardProps) {
   const [steps, setSteps] = useState<Step[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProgress = async () => {
       try {
         const progress = await api.getProgress(issue.id);
-        setSteps(progress.steps);
-      } catch (error) {
-        console.error('Error fetching progress:', error);
+        if (isMounted) {
+          setSteps(progress.steps);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError('Failed to load progress');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProgress();
     const interval = setInterval(fetchProgress, 3000); // Poll every 3 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [issue.id]);
 
   const completedCount = steps.filter(s => s.status === 'done').length;
   const totalCount = steps.length;
-
-  const getStepIcon = (status: Step['status']) => {
-    switch (status) {
-      case 'done': return '✓';
-      case 'in_progress': return '●';
-      case 'failed': return '✗';
-      case 'skipped': return '−';
-      default: return '○';
-    }
-  };
-
-  const getStepColor = (status: Step['status']) => {
-    switch (status) {
-      case 'done': return '#22c55e';
-      case 'in_progress': return '#3b82f6';
-      case 'failed': return '#ef4444';
-      case 'skipped': return '#9ca3af';
-      default: return '#6b7280';
-    }
-  };
 
   return (
     <div style={{
@@ -83,6 +96,8 @@ export function ActiveTaskCard({ issue, repoName }: ActiveTaskCardProps) {
 
       {loading ? (
         <div style={{ color: '#64748b', fontSize: '12px' }}>Loading progress...</div>
+      ) : error ? (
+        <div style={{ color: '#ef4444', fontSize: '12px' }}>{error}</div>
       ) : steps.length === 0 ? (
         <div style={{ color: '#64748b', fontSize: '12px' }}>No plan defined yet</div>
       ) : (
