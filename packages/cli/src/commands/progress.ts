@@ -41,19 +41,24 @@ interface WaitResponse {
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  } catch (error) {
+    throw new Error(`Could not connect to RepoDepot server. Is it running?`);
+  }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({ error: response.statusText }));
 
   if (!response.ok) {
-    const error = data as ApiError;
-    throw new Error(error.error || `HTTP ${response.status}`);
+    const apiError = data as { error?: string };
+    throw new Error(apiError.error || `HTTP ${response.status}`);
   }
 
   return data as T;
