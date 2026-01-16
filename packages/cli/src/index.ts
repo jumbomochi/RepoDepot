@@ -9,6 +9,7 @@ import { addRepoCommand } from './commands/add-repo.js';
 import { removeRepoCommand } from './commands/remove-repo.js';
 import { syncReposCommand } from './commands/sync-repos.js';
 import { agentCommand } from './commands/agent.js';
+import { progressCommand } from './commands/progress.js';
 
 const program = new Command();
 
@@ -28,7 +29,8 @@ program.addCommand(addRepoCommand);
 program.addCommand(removeRepoCommand);
 program.addCommand(syncReposCommand);
 
-// Agent command
+// Agent commands
 program.addCommand(agentCommand);
+program.addCommand(progressCommand);
 
 program.parse();
