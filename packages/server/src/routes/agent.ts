@@ -322,14 +322,29 @@ agentRoutes.post('/start/:repoId', (req, res) => {
     // Build the agent prompt
     const prompt = `You are an autonomous coding agent working on repository "${repository.fullName}".
 
-Your task:
-1. First, fetch pending tasks: curl ${apiUrl}/api/agent/tasks/${repoId}
-2. If there are pending tasks, claim one: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/claim
-3. Update status to in_progress: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/status -H "Content-Type: application/json" -d '{"status": "in_progress"}'
-4. Read the task description and implement the fix/feature
-5. Test your changes
-6. Commit with a message referencing the GitHub issue
-7. Mark complete: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/complete -H "Content-Type: application/json" -d '{"summary": "your summary here"}'
+IMPORTANT - Progress Reporting:
+Before starting work on any task, declare your plan using the CLI:
+  repodepot progress plan --task <taskId> "Step 1" "Step 2" "Step 3" ...
+
+As you complete each step, update progress:
+  repodepot progress update --task <taskId> --step <index> --status done
+
+If you need clarification from the user:
+  repodepot progress ask --task <taskId> "Your question" --choices "Option A" "Option B"
+  # Then wait for the response:
+  repodepot progress wait --task <taskId> --timeout 3600
+
+If you discover additional steps needed:
+  repodepot progress add --task <taskId> --after <index> "New step description"
+
+Your workflow:
+1. Fetch pending tasks: curl ${apiUrl}/api/agent/tasks/${repoId}
+2. Claim a task: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/claim
+3. Create your plan with repodepot progress plan
+4. Work through each step, reporting progress
+5. Ask for clarification if requirements are ambiguous
+6. Commit with message referencing the GitHub issue
+7. Mark complete: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/complete -H "Content-Type: application/json" -d '{"summary": "your summary"}'
 
 Work autonomously and complete the task.`;
 
@@ -530,14 +545,29 @@ agentRoutes.post('/start-all', (req, res) => {
       try {
         const prompt = `You are an autonomous coding agent working on repository "${repo.fullName}".
 
-Your task:
-1. First, fetch pending tasks: curl ${apiUrl}/api/agent/tasks/${repo.id}
-2. If there are pending tasks, claim one: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/claim
-3. Update status to in_progress: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/status -H "Content-Type: application/json" -d '{"status": "in_progress"}'
-4. Read the task description and implement the fix/feature
-5. Test your changes
-6. Commit with a message referencing the GitHub issue
-7. Mark complete: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/complete -H "Content-Type: application/json" -d '{"summary": "your summary here"}'
+IMPORTANT - Progress Reporting:
+Before starting work on any task, declare your plan using the CLI:
+  repodepot progress plan --task <taskId> "Step 1" "Step 2" "Step 3" ...
+
+As you complete each step, update progress:
+  repodepot progress update --task <taskId> --step <index> --status done
+
+If you need clarification from the user:
+  repodepot progress ask --task <taskId> "Your question" --choices "Option A" "Option B"
+  # Then wait for the response:
+  repodepot progress wait --task <taskId> --timeout 3600
+
+If you discover additional steps needed:
+  repodepot progress add --task <taskId> --after <index> "New step description"
+
+Your workflow:
+1. Fetch pending tasks: curl ${apiUrl}/api/agent/tasks/${repo.id}
+2. Claim a task: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/claim
+3. Create your plan with repodepot progress plan
+4. Work through each step, reporting progress
+5. Ask for clarification if requirements are ambiguous
+6. Commit with message referencing the GitHub issue
+7. Mark complete: curl -X POST ${apiUrl}/api/agent/tasks/{taskId}/complete -H "Content-Type: application/json" -d '{"summary": "your summary"}'
 
 Work autonomously and complete the task.`;
 
