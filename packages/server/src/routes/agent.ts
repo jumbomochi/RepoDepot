@@ -1,12 +1,20 @@
 import { Router, type IRouter } from 'express';
 import { spawn, ChildProcess } from 'child_process';
+import { createWriteStream, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
 import { getDb } from '../db/connection.js';
 import { IssueRepository, RepositoryRepository, ConfigRepository } from '../repositories/index.js';
 import { GitHubService } from '../services/GitHubService.js';
 import { AgentStatus } from '@repodepot/shared';
 
+// Logs directory for agent output
+const LOGS_DIR = join(process.cwd(), 'agent-logs');
+if (!existsSync(LOGS_DIR)) {
+  mkdirSync(LOGS_DIR, { recursive: true });
+}
+
 // Track running agents
-const runningAgents: Map<number, { process: ChildProcess; startedAt: string; logs: string[] }> = new Map();
+const runningAgents: Map<number, { process: ChildProcess; startedAt: string; logs: string[]; logFile: string }> = new Map();
 
 export const agentRoutes: IRouter = Router();
 
@@ -325,6 +333,17 @@ Your task:
 
 Work autonomously and complete the task.`;
 
+    // Create log file for this agent
+    const logFile = join(LOGS_DIR, `agent-${repoId}-${Date.now()}.log`);
+    const logStream = createWriteStream(logFile, { flags: 'a' });
+
+    const startedAt = new Date().toISOString();
+    logStream.write(`=== Agent started at ${startedAt} ===\n`);
+    logStream.write(`Repository: ${repository.fullName}\n`);
+    logStream.write(`Working directory: ${workDir}\n`);
+    logStream.write(`Log file: ${logFile}\n`);
+    logStream.write(`${'='.repeat(50)}\n\n`);
+
     // Spawn the Claude CLI process
     const agentProcess = spawn('claude', [
       '-p', prompt,
@@ -337,34 +356,40 @@ Work autonomously and complete the task.`;
     });
 
     const logs: string[] = [];
-    const startedAt = new Date().toISOString();
 
     agentProcess.stdout?.on('data', (data) => {
       const line = data.toString();
       logs.push(line);
       // Keep only last 100 log lines
       if (logs.length > 100) logs.shift();
+      logStream.write(line);
       console.log(`[Agent ${repoId}] ${line}`);
     });
 
     agentProcess.stderr?.on('data', (data) => {
-      const line = `[ERROR] ${data.toString()}`;
-      logs.push(line);
+      const line = data.toString();
+      logs.push(`[ERROR] ${line}`);
       if (logs.length > 100) logs.shift();
+      logStream.write(`[ERROR] ${line}`);
       console.error(`[Agent ${repoId}] ${line}`);
     });
 
     agentProcess.on('close', (code) => {
+      const msg = `\n=== Agent exited with code ${code} at ${new Date().toISOString()} ===\n`;
+      logStream.write(msg);
+      logStream.end();
       console.log(`[Agent ${repoId}] Process exited with code ${code}`);
       runningAgents.delete(repoId);
     });
 
     agentProcess.on('error', (err) => {
+      logStream.write(`[FATAL] Failed to start: ${err.message}\n`);
+      logStream.end();
       console.error(`[Agent ${repoId}] Failed to start:`, err);
       runningAgents.delete(repoId);
     });
 
-    runningAgents.set(repoId, { process: agentProcess, startedAt, logs });
+    runningAgents.set(repoId, { process: agentProcess, startedAt, logs, logFile });
 
     res.json({
       success: true,
@@ -372,6 +397,7 @@ Work autonomously and complete the task.`;
       repoId,
       startedAt,
       pid: agentProcess.pid,
+      logFile,
     });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
@@ -418,6 +444,7 @@ agentRoutes.get('/status/:repoId', (req, res) => {
       repoId,
       startedAt: agent.startedAt,
       pid: agent.process.pid,
+      logFile: agent.logFile,
       recentLogs: agent.logs.slice(-20),
     });
   } catch (error) {
@@ -513,6 +540,17 @@ Your task:
 
 Work autonomously and complete the task.`;
 
+        // Create log file for this agent
+        const logFile = join(LOGS_DIR, `agent-${repo.id}-${Date.now()}.log`);
+        const logStream = createWriteStream(logFile, { flags: 'a' });
+
+        const startedAt = new Date().toISOString();
+        logStream.write(`=== Agent started at ${startedAt} ===\n`);
+        logStream.write(`Repository: ${repo.fullName}\n`);
+        logStream.write(`Working directory: ${repo.localPath}\n`);
+        logStream.write(`Log file: ${logFile}\n`);
+        logStream.write(`${'='.repeat(50)}\n\n`);
+
         const agentProcess = spawn('claude', [
           '-p', prompt,
           '--dangerously-skip-permissions',
@@ -524,33 +562,39 @@ Work autonomously and complete the task.`;
         });
 
         const logs: string[] = [];
-        const startedAt = new Date().toISOString();
 
         agentProcess.stdout?.on('data', (data) => {
           const line = data.toString();
           logs.push(line);
           if (logs.length > 100) logs.shift();
+          logStream.write(line);
           console.log(`[Agent ${repo.id}] ${line}`);
         });
 
         agentProcess.stderr?.on('data', (data) => {
-          const line = `[ERROR] ${data.toString()}`;
-          logs.push(line);
+          const line = data.toString();
+          logs.push(`[ERROR] ${line}`);
           if (logs.length > 100) logs.shift();
+          logStream.write(`[ERROR] ${line}`);
           console.error(`[Agent ${repo.id}] ${line}`);
         });
 
         agentProcess.on('close', (code) => {
+          const msg = `\n=== Agent exited with code ${code} at ${new Date().toISOString()} ===\n`;
+          logStream.write(msg);
+          logStream.end();
           console.log(`[Agent ${repo.id}] Process exited with code ${code}`);
           runningAgents.delete(repo.id);
         });
 
         agentProcess.on('error', (err) => {
+          logStream.write(`[FATAL] Failed to start: ${err.message}\n`);
+          logStream.end();
           console.error(`[Agent ${repo.id}] Failed to start:`, err);
           runningAgents.delete(repo.id);
         });
 
-        runningAgents.set(repo.id, { process: agentProcess, startedAt, logs });
+        runningAgents.set(repo.id, { process: agentProcess, startedAt, logs, logFile });
 
         results.push({
           repoId: repo.id,
@@ -558,6 +602,7 @@ Work autonomously and complete the task.`;
           status: 'started',
           pendingTasks: pendingTasks.length,
           pid: agentProcess.pid,
+          logFile,
         });
       } catch (err) {
         results.push({

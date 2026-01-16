@@ -22,11 +22,56 @@ function Dashboard() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [runningAgents, setRunningAgents] = useState<Set<number>>(new Set());
   const [startingAllAgents, setStartingAllAgents] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // Sync issues from GitHub for all repos
+  const syncFromGitHub = async (repositories: Repository[], tokenAvailable: boolean) => {
+    if (!tokenAvailable || repositories.length === 0) return;
+
+    setSyncing(true);
+    try {
+      // Sync all repos in parallel
+      await Promise.all(
+        repositories.map(repo =>
+          api.importIssuesFromGitHub(repo.id).catch(err => {
+            console.error(`Error syncing repo ${repo.fullName}:`, err);
+          })
+        )
+      );
+      // Refresh issues after sync
+      const updatedIssues = await api.getIssues();
+      setIssues(updatedIssues);
+    } catch (error) {
+      console.error('Error syncing from GitHub:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
-    fetchRepos();
+    const init = async () => {
+      // Check config first to get token status
+      let tokenAvailable = false;
+      try {
+        const config = await api.getConfig();
+        tokenAvailable = config.hasGitHubToken;
+        setHasToken(tokenAvailable);
+      } catch {
+        setHasToken(false);
+      }
+
+      const repoData = await api.getRepositories().catch(() => []);
+      setRepos(repoData);
+      if (repoData.length > 0 && !newIssue.repoId) {
+        setNewIssue(prev => ({ ...prev, repoId: repoData[0].id }));
+      }
+
+      // Sync from GitHub after fetching repos (pass token status)
+      await syncFromGitHub(repoData, tokenAvailable);
+      setLoading(false);
+    };
+    init();
     fetchAllIssues();
-    checkConfig();
     checkRunningAgents();
   }, []);
 
@@ -230,7 +275,7 @@ function Dashboard() {
         padding: '1.5rem',
         textAlign: 'center'
       }}>
-        Loading...
+        {syncing ? 'Syncing from GitHub...' : 'Loading...'}
       </div>
     );
   }
@@ -249,6 +294,34 @@ function Dashboard() {
         onClose={() => setShowAddRepoModal(false)}
         onRepoAdded={handleRepoAdded}
       />
+
+      {/* Syncing Indicator */}
+      {syncing && (
+        <div
+          style={{
+            padding: '0.5rem 1rem',
+            borderRadius: '0.5rem',
+            marginBottom: '0.5rem',
+            backgroundColor: '#3b82f620',
+            color: '#3b82f6',
+            border: '1px solid #3b82f640',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <span style={{
+            width: '12px',
+            height: '12px',
+            border: '2px solid #3b82f6',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} />
+          Syncing issues from GitHub...
+        </div>
+      )}
 
       {/* Message Banner */}
       {message && (
