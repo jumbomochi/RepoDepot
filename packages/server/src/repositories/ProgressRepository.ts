@@ -1,9 +1,18 @@
-import type { Database } from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import type { TaskStep, TaskQuestion, StepStatus } from '@repodepot/shared';
 
 export class ProgressRepository {
-  constructor(private db: Database) {}
+  constructor(private db: Database.Database) {}
+
+  private safeParseChoices(choicesJson: string | null): string[] | undefined {
+    if (!choicesJson) return undefined;
+    try {
+      return JSON.parse(choicesJson);
+    } catch {
+      return undefined;
+    }
+  }
 
   // === Steps ===
 
@@ -46,9 +55,9 @@ export class ProgressRepository {
       index: row.idx,
       description: row.description,
       status: row.status as StepStatus,
-      note: row.note || undefined,
-      startedAt: row.started_at || undefined,
-      completedAt: row.completed_at || undefined,
+      note: row.note ?? undefined,
+      startedAt: row.started_at ?? undefined,
+      completedAt: row.completed_at ?? undefined,
     }));
   }
 
@@ -92,9 +101,9 @@ export class ProgressRepository {
       index: row.idx,
       description: row.description,
       status: row.status as StepStatus,
-      note: row.note || undefined,
-      startedAt: row.started_at || undefined,
-      completedAt: row.completed_at || undefined,
+      note: row.note ?? undefined,
+      startedAt: row.started_at ?? undefined,
+      completedAt: row.completed_at ?? undefined,
     };
   }
 
@@ -158,39 +167,26 @@ export class ProgressRepository {
       id: row.id,
       taskId: row.task_id,
       question: row.question,
-      choices: row.choices ? JSON.parse(row.choices) : undefined,
-      answer: row.answer || undefined,
+      choices: this.safeParseChoices(row.choices),
+      answer: row.answer ?? undefined,
       askedAt: row.asked_at,
-      answeredAt: row.answered_at || undefined,
+      answeredAt: row.answered_at ?? undefined,
     };
   }
 
   answerQuestion(taskId: string, answer: string): TaskQuestion | null {
     const now = new Date().toISOString();
 
+    const pending = this.getPendingQuestion(taskId);
+    if (!pending) return null;
+
     this.db.prepare(`
       UPDATE task_questions
       SET answer = ?, answered_at = ?
-      WHERE task_id = ? AND answer IS NULL
-    `).run(answer, now, taskId);
+      WHERE id = ?
+    `).run(answer, now, pending.id);
 
-    const row = this.db.prepare(`
-      SELECT id, task_id, question, choices, answer, asked_at, answered_at
-      FROM task_questions
-      WHERE task_id = ? AND answered_at = ?
-    `).get(taskId, now) as any;
-
-    if (!row) return null;
-
-    return {
-      id: row.id,
-      taskId: row.task_id,
-      question: row.question,
-      choices: row.choices ? JSON.parse(row.choices) : undefined,
-      answer: row.answer,
-      askedAt: row.asked_at,
-      answeredAt: row.answered_at,
-    };
+    return { ...pending, answer, answeredAt: now };
   }
 
   getAnswer(taskId: string): TaskQuestion | null {
@@ -208,7 +204,7 @@ export class ProgressRepository {
       id: row.id,
       taskId: row.task_id,
       question: row.question,
-      choices: row.choices ? JSON.parse(row.choices) : undefined,
+      choices: this.safeParseChoices(row.choices),
       answer: row.answer,
       askedAt: row.asked_at,
       answeredAt: row.answered_at,
@@ -230,7 +226,7 @@ export class ProgressRepository {
         id: row.id,
         taskId: row.task_id,
         question: row.question,
-        choices: row.choices ? JSON.parse(row.choices) : undefined,
+        choices: this.safeParseChoices(row.choices),
         askedAt: row.asked_at,
       },
     }));
