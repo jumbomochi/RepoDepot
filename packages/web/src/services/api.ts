@@ -248,4 +248,59 @@ export const api = {
       stoppedCount: number;
       stoppedRepos: number[];
     }>('/api/agent/stop-all', { method: 'POST' }),
+
+  // Progress tracking
+  getProgress: (taskId: string) =>
+    request<{
+      taskId: string;
+      steps: Array<{
+        id: string;
+        taskId: string;
+        index: number;
+        description: string;
+        status: 'pending' | 'in_progress' | 'done' | 'failed' | 'skipped';
+        note?: string;
+        startedAt?: string;
+        completedAt?: string;
+      }>;
+      currentQuestion?: {
+        id: string;
+        taskId: string;
+        question: string;
+        choices?: string[];
+        askedAt: string;
+      };
+    }>(`/api/progress/${taskId}`),
+
+  answerQuestion: (taskId: string, answer: string) =>
+    request<{
+      success: boolean;
+      question: {
+        id: string;
+        taskId: string;
+        question: string;
+        choices?: string[];
+        answer: string;
+        askedAt: string;
+        answeredAt: string;
+      };
+    }>(`/api/progress/${taskId}/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ answer }),
+    }),
+
+  getTasksAwaitingInput: () =>
+    request<{
+      tasks: Array<{
+        taskId: string;
+        question: {
+          id: string;
+          taskId: string;
+          question: string;
+          choices?: string[];
+          askedAt: string;
+        };
+      }>;
+      count: number;
+    }>('/api/progress/awaiting/all'),
 };
