@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Repository, Issue, IssuePriority, IssueStatus } from '@repodepot/shared';
 import AddRepoForm from '../components/AddRepoForm';
 import KanbanBoard from '../components/KanbanBoard';
+import { MissionControl } from '../components/MissionControl';
 import { api } from '../services/api';
 
 function Dashboard() {
@@ -23,6 +24,7 @@ function Dashboard() {
   const [runningAgents, setRunningAgents] = useState<Set<number>>(new Set());
   const [startingAllAgents, setStartingAllAgents] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'mission'>('mission');
 
   // Sync issues from GitHub for all repos
   const syncFromGitHub = async (repositories: Repository[], tokenAvailable: boolean) => {
@@ -361,6 +363,38 @@ function Dashboard() {
               flexWrap: 'wrap',
               alignItems: 'center',
             }}>
+              {/* View Mode Toggle */}
+              <div style={{ display: 'flex', gap: '4px', marginRight: '16px' }}>
+                <button
+                  onClick={() => setViewMode('mission')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: viewMode === 'mission' ? '#3b82f6' : '#334155',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Mission Control
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: viewMode === 'kanban' ? '#3b82f6' : '#334155',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Kanban
+                </button>
+              </div>
+
               <button
                 onClick={() => setShowIssueForm(!showIssueForm)}
                 style={{
@@ -548,12 +582,20 @@ function Dashboard() {
               </div>
             )}
 
-            <KanbanBoard
-              issues={issues}
-              repos={repos}
-              onIssueUpdate={handleIssueUpdate}
-              onSyncComplete={handleSyncComplete}
-            />
+            {viewMode === 'mission' ? (
+              <MissionControl
+                issues={issues}
+                repositories={repos}
+                onRefresh={fetchAllIssues}
+              />
+            ) : (
+              <KanbanBoard
+                issues={issues}
+                repos={repos}
+                onIssueUpdate={handleIssueUpdate}
+                onSyncComplete={handleSyncComplete}
+              />
+            )}
           </div>
 
           {/* Right Sidebar - Repositories */}
