@@ -8,6 +8,7 @@ import { pullRequestRoutes } from './routes/pull-requests.js';
 import { configRoutes } from './routes/config.js';
 import { activityRoutes } from './routes/activity.js';
 import { agentRoutes } from './routes/agent.js';
+import { progressRoutes } from './routes/progress.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,6 +29,7 @@ app.use('/api/pull-requests', pullRequestRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/progress', progressRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
