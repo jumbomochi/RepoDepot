@@ -367,7 +367,7 @@ Work autonomously and complete the task.`;
     ], {
       cwd: workDir,
       env: { ...process.env },
-      stdio: ['inherit', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     const logs: string[] = [];
@@ -589,7 +589,7 @@ Work autonomously and complete the task.`;
         ], {
           cwd: repo.localPath,
           env: { ...process.env },
-          stdio: ['inherit', 'pipe', 'pipe'],
+          stdio: ['ignore', 'pipe', 'pipe'],
         });
 
         const logs: string[] = [];
