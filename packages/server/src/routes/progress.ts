@@ -40,7 +40,14 @@ progressRoutes.post('/:taskId/plan', (req: Request, res: Response) => {
 
     const db = getDb();
     const progressRepo = new ProgressRepository(db);
+    const issueRepo = new IssueRepository(db);
     const createdSteps = progressRepo.createPlan(taskId, steps);
+
+    // Update issue status to in_progress when plan is created
+    const issue = validation.issue;
+    if (issue.agentStatus === 'assigned' || issue.agentStatus === 'pending') {
+      issueRepo.update(taskId, { agentStatus: 'in_progress', status: 'in-progress' });
+    }
 
     res.json({
       success: true,

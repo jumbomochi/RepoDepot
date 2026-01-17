@@ -69,7 +69,7 @@ export function MissionControl({ issues, repositories, onRefresh }: MissionContr
     .filter((t): t is NonNullable<typeof t> => t !== null);
 
   const active = issues.filter(i =>
-    i.agentStatus === 'in_progress' &&
+    (i.agentStatus === 'in_progress' || i.agentStatus === 'assigned') &&
     !awaitingTasks.some(t => t.taskId === i.id)
   );
 
